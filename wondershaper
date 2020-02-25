@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Wonder Shaper
 #
 # Set the following values to somewhat less than your actual download
@@ -212,7 +212,7 @@ then
 
     tc filter add dev $IFACE parent 1: protocol ip prio 18 u32 \
         match ip dst 0.0.0.0/0 flowid 1:20
-    
+
 fi
 
 ########## downlink #############
@@ -232,12 +232,12 @@ then
     tc qdisc add dev $IFACE handle ffff: ingress
     tc filter add dev $IFACE parent ffff: protocol ip u32 match u32 0 0 \
         action mirred egress redirect dev $IFB
-    
+
     # Add class and rules for virtual
     tc qdisc add dev $IFB root handle 2: htb
     tc class add dev $IFB parent 2: classid 2:1 htb rate ${DSPEED}kbit
-    
+
     # Add filter to rule for IP address
     tc filter add dev $IFB protocol ip parent 2: prio 1 u32 match ip src 0.0.0.0/0 flowid 2:1
-    
+
 fi
