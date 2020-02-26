@@ -140,6 +140,10 @@ then
         rate ${USPEED}kbit \
         prio 5 $COMMONOPTIONS
 
+    tc class add dev $IFACE parent 1: classid 1:2 htb \
+        rate 1gbit \
+        prio 6 $COMMONOPTIONS
+
     # high prio class 1:10:
 
     tc class add dev $IFACE parent 1:1 classid 1:10 htb \
@@ -157,12 +161,16 @@ then
 
     tc class add dev $IFACE parent 1:1 classid 1:30 htb \
         rate $[20*$USPEED/100]kbit ceil $[90*$USPEED/100]kbit \
-        prio 3 $COMMONOPTIONS
+        prio 4 $COMMONOPTIONS
 
     # all get Stochastic Fairness:
     tc qdisc add dev $IFACE parent 1:10 handle 10: sfq perturb 10 quantum $QUANTUM
     tc qdisc add dev $IFACE parent 1:20 handle 20: sfq perturb 10 quantum $QUANTUM
+    tc qdisc add dev $IFACE parent 1:2  handle 25: sfq perturb 10 quantum $QUANTUM
     tc qdisc add dev $IFACE parent 1:30 handle 30: sfq perturb 10 quantum $QUANTUM
+
+    tc filter add dev $IFACE parent 1: protocol ip prio 9 u32 \
+        match ip dst 192.168.2.0/24 flowid 1:2
 
     # start filters
     # TOS Minimum Delay (ssh, NOT scp) in 1:10:
@@ -236,8 +244,10 @@ then
     # Add class and rules for virtual
     tc qdisc add dev $IFB root handle 2: htb
     tc class add dev $IFB parent 2: classid 2:1 htb rate ${DSPEED}kbit
+    tc class add dev $IFB parent 2: classid 2:3 htb rate 1gbit
 
     # Add filter to rule for IP address
-    tc filter add dev $IFB protocol ip parent 2: prio 1 u32 match ip src 0.0.0.0/0 flowid 2:1
+    tc filter add dev $IFB protocol ip parent 2: prio 1 u32 match ip src 192.168.2.0/24 flowid 2:3
+    tc filter add dev $IFB protocol ip parent 2: prio 2 u32 match ip src 0.0.0.0/0 flowid 2:1
 
 fi
